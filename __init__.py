@@ -112,17 +112,8 @@ class NodeUtils:
             return None        
         
         return from_node
-
-class FadeOut(Operator):
-    """Fade out a material"""
-    bl_idname = "object.fade_out"
-    bl_label = "Fade Out"
     
-    def execute(self,context):
-        duration = bpy.context.scene.commotion_mat_tools.duration
-        offset = bpy.context.scene.commotion_mat_tools.offset
-        nodeutils = NodeUtils()
-        
+    def fade_selected_objects(self, duration, offset, start_val, end_val):
         frame_restore = bpy.context.scene.frame_current
         for ob in bpy.context.selected_objects:
             
@@ -136,67 +127,50 @@ class FadeOut(Operator):
                 
                 slot.material.use_nodes = True
                 
-                mix_node = nodeutils.detect_fade_nodes(slot.material)
+                mix_node = self.detect_fade_nodes(slot.material)
         
                 if mix_node is None:
-                    mix_node = nodeutils.create_fade_nodes(slot.material)
+                    mix_node = self.create_fade_nodes(slot.material)
 
                 # Delete old keyframes if any
                 #mix_node.inputs['Fac'].id_data.animation_data_clear()
                 
                 # Animate Factor on Mix Shader
-                mix_node.inputs['Fac'].default_value = 1.0
+                mix_node.inputs['Fac'].default_value = start_val
                 mix_node.inputs['Fac'].keyframe_insert(data_path="default_value", index=-1)
                 bpy.context.scene.frame_current += duration
-                mix_node.inputs['Fac'].default_value = 0.0
+                mix_node.inputs['Fac'].default_value = end_val
                 mix_node.inputs['Fac'].keyframe_insert(data_path="default_value", index=-1)
                 bpy.context.scene.frame_current -= duration
             bpy.context.scene.frame_current += offset     
         
-        bpy.context.scene.frame_current = frame_restore        
-        return {'FINISHED'}
+        bpy.context.scene.frame_current = frame_restore 
+        
 
+class FadeOut(Operator):
+    """Fade out a material"""
+    bl_idname = "object.fade_out"
+    bl_label = "Fade Out"
+    
+    def execute(self,context):
+        duration = bpy.context.scene.commotion_mat_tools.duration
+        offset = bpy.context.scene.commotion_mat_tools.offset
+        nodeutils = NodeUtils()
+        nodeutils.fade_selected_objects(duration, offset, 1.0, 0.0)
+        return {'FINISHED'}
 
 class FadeIn(Operator):
     """Fade in a material"""
     bl_idname = "object.fade_in"
     bl_label = "Fade In"
+    
     def execute(self,context):
         duration = bpy.context.scene.commotion_mat_tools.duration
         offset = bpy.context.scene.commotion_mat_tools.offset
         nodeutils = NodeUtils()
-        
-        frame_restore = bpy.context.scene.frame_current
-        for ob in bpy.context.selected_objects:
-            for slot in ob.material_slots:
-                if not slot.material:
-                    continue
-
-                # Make material unique if we are making object offset.
-                if slot.material.users > 1 and offset > 0:
-                    slot.material = slot.material.copy()
-                
-                slot.material.use_nodes = True
-                
-                mix_node = nodeutils.detect_fade_nodes(slot.material)
-        
-                if mix_node is None:
-                    mix_node = nodeutils.create_fade_nodes(slot.material)
-
-                # Delete old keyframes if any
-                #mix_node.inputs['Fac'].id_data.animation_data_clear()
-                
-                # Animate Factor on Mix Shader
-                mix_node.inputs['Fac'].default_value = 0.0
-                mix_node.inputs['Fac'].keyframe_insert(data_path="default_value", index=-1)
-                bpy.context.scene.frame_current += duration
-                mix_node.inputs['Fac'].default_value = 1.0
-                mix_node.inputs['Fac'].keyframe_insert(data_path="default_value", index=-1)
-                bpy.context.scene.frame_current -= duration          
-            bpy.context.scene.frame_current += offset    
-
-        bpy.context.scene.frame_current = frame_restore                
+        nodeutils.fade_selected_objects(duration, offset, 0.0, 1.0)         
         return {'FINISHED'}
+
 
 classes = (
     MaterialTools,
