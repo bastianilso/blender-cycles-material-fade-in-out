@@ -1,7 +1,7 @@
 # Material Fade Tools
 Blender plug-in for creating fade animations on multiple objects in cycles
 
-![The addon creates fade-in and fade-out effects on all selected objects](http://bastianilso.com/wp-content/uploads/2017/06/select_by_name.png)
+![The addon creates fade-in and fade-out effects on all selected objects](http://bastianilso.com/wp-content/uploads/2017/06/material_fadein_fadeout.png)
 
 Adds a menu in the 'Commotion' tab of the T-Panel, with functionality to fade each selected object between complete transparency and full opaqueness for a customizable period of time.
 
