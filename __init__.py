@@ -32,6 +32,12 @@ class MaterialToolProperties(PropertyGroup):
             default=13,
             subtype="TIME",
             )
+    offset = IntProperty(
+        name="Offset",
+        description="Offset between each object fade",
+        min=0,
+        default=0,
+        )
 
 class MaterialTools(UI,Panel):
     """Creates a material tool panel in the commotion tab"""
@@ -42,6 +48,12 @@ class MaterialTools(UI,Panel):
         layout = self.layout
         scene = context.scene
         layout.prop(scene.commotion_mat_tools, "duration")
+        
+        row = layout.row()
+        row.prop(scene.commotion_mat_tools, "offset")
+        if len(bpy.context.selected_objects) <= 1:
+            row.enabled = False
+            
         layout.operator("object.fade_in", icon="MATERIAL", text="Fade In")
         layout.operator("object.fade_out", icon="MATERIAL", text="Fade Out")
 
@@ -105,14 +117,22 @@ class FadeOut(Operator):
     """Fade out a material"""
     bl_idname = "object.fade_out"
     bl_label = "Fade Out"
+    
     def execute(self,context):
         duration = bpy.context.scene.commotion_mat_tools.duration
+        offset = bpy.context.scene.commotion_mat_tools.offset
         nodeutils = NodeUtils()
         
+        frame_restore = bpy.context.scene.frame_current
         for ob in bpy.context.selected_objects:
+            
             for slot in ob.material_slots:
                 if not slot.material:
                     continue
+                
+                # Make material unique if we are making object offset.
+                if slot.material.users > 1 and offset > 0:
+                    slot.material = slot.material.copy()
                 
                 slot.material.use_nodes = True
                 
@@ -130,8 +150,10 @@ class FadeOut(Operator):
                 bpy.context.scene.frame_current += duration
                 mix_node.inputs['Fac'].default_value = 0.0
                 mix_node.inputs['Fac'].keyframe_insert(data_path="default_value", index=-1)
-                bpy.context.scene.frame_current -= duration          
-                
+                bpy.context.scene.frame_current -= duration
+            bpy.context.scene.frame_current += offset     
+        
+        bpy.context.scene.frame_current = frame_restore        
         return {'FINISHED'}
 
 
@@ -141,12 +163,18 @@ class FadeIn(Operator):
     bl_label = "Fade In"
     def execute(self,context):
         duration = bpy.context.scene.commotion_mat_tools.duration
+        offset = bpy.context.scene.commotion_mat_tools.offset
         nodeutils = NodeUtils()
         
+        frame_restore = bpy.context.scene.frame_current
         for ob in bpy.context.selected_objects:
             for slot in ob.material_slots:
                 if not slot.material:
                     continue
+
+                # Make material unique if we are making object offset.
+                if slot.material.users > 1 and offset > 0:
+                    slot.material = slot.material.copy()
                 
                 slot.material.use_nodes = True
                 
@@ -165,7 +193,9 @@ class FadeIn(Operator):
                 mix_node.inputs['Fac'].default_value = 1.0
                 mix_node.inputs['Fac'].keyframe_insert(data_path="default_value", index=-1)
                 bpy.context.scene.frame_current -= duration          
-                
+            bpy.context.scene.frame_current += offset    
+
+        bpy.context.scene.frame_current = frame_restore                
         return {'FINISHED'}
 
 classes = (
